@@ -22,7 +22,7 @@ const LikedMemes = () => {
       const data = await response.json();
       setLikedMemes(data);
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('Failed to load liked memes');
       setLoading(false);
     }

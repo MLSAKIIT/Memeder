@@ -22,7 +22,7 @@ const DislikedMemes = () => {
       const data = await response.json();
       setDislikedMemes(data);
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('Failed to load disliked memes');
       setLoading(false);
     }

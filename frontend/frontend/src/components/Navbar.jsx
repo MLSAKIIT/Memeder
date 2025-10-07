@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { Button } from './Button'
 
 export default function Navbar() {
@@ -37,7 +37,7 @@ export default function Navbar() {
             </Button>
             <Button>
               <Link to="/register" >
-                Register
+                Sign Up
               </Link>
             </Button>
           </div>

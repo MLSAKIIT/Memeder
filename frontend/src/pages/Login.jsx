@@ -11,15 +11,16 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const [pendingSignup, setPendingSignup] = useState(null);
+  const [pendingRegister, setPendingRegister] = useState(null);
 
-  const handleChange = (e) => {
+  const handleChange = (ev) => {
+    const { name, value } = ev.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
     // clear field-level error on change
-    setFieldErrors((prev) => ({ ...prev, [e.target.name]: '' }));
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -33,7 +34,8 @@ const Login = () => {
     if (!formData.email) {
       errors.email = 'Email is required';
     } else {
-      const emailRe = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i;
+      // simplified email regex
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
       if (!emailRe.test(formData.email)) {
         errors.email = 'Please enter a valid email address';
       }
@@ -72,11 +74,14 @@ const Login = () => {
         throw new Error(data.message || 'Invalid email or password');
       }
       localStorage.setItem('user', JSON.stringify(data.user));
-      // If login succeeds and there was a pending signup, clear it
+      // If login succeeds and there was a pending registration, clear it
       try {
-        const raw = localStorage.getItem('pendingSignup');
-        if (raw) localStorage.removeItem('pendingSignup');
-      } catch (e) {
+        const raw = localStorage.getItem('pendingRegister') || localStorage.getItem('pendingSignup');
+        if (raw) {
+          localStorage.removeItem('pendingRegister');
+          localStorage.removeItem('pendingSignup');
+        }
+      } catch {
         // ignore
       }
       navigate('/');
@@ -89,23 +94,23 @@ const Login = () => {
     }
   };
 
-  // Load pending signup from localStorage if present
+  // Load pending registration from localStorage if present (migrate old key if needed)
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('pendingSignup');
-      if (raw) setPendingSignup(JSON.parse(raw));
-    } catch (err) {
+      const raw = localStorage.getItem('pendingRegister') || localStorage.getItem('pendingSignup');
+      if (raw) setPendingRegister(JSON.parse(raw));
+    } catch {
       // ignore
     }
   }, []);
 
   const usePendingSignup = async () => {
-    if (!pendingSignup) return;
+    if (!pendingRegister) return;
     setFieldErrors({});
-    setError('Attempting login with locally saved signup credentials...');
+    setError('Attempting login with locally saved registration credentials...');
     try {
-      await performLogin({ email: pendingSignup.email || '', password: pendingSignup.password || '' });
-    } catch (err) {
+      await performLogin({ email: pendingRegister.email || '', password: pendingRegister.password || '' });
+    } catch {
       // performLogin will set the error message
     } finally {
       setLoading(false);
@@ -181,13 +186,13 @@ const Login = () => {
           </button>
         </form>
 
-        {pendingSignup && (
+        {pendingRegister && (
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-            <p className="text-sm text-yellow-800">A signup attempt was saved locally (offline). You can use those credentials to login:</p>
+            <p className="text-sm text-yellow-800">A registration attempt was saved locally (offline). You can use those credentials to login:</p>
             <p className="text-xs text-gray-600 mt-1">(Stored locally for convenience — storing plaintext passwords is insecure; consider discarding after use.)</p>
             <div className="mt-2 flex gap-2">
-              <button onClick={usePendingSignup} className="text-sm text-blue-500 hover:underline bg-transparent border-0 p-0">Use saved signup</button>
-              <button onClick={() => { localStorage.removeItem('pendingSignup'); setPendingSignup(null); }} className="text-sm text-red-500 hover:underline bg-transparent border-0 p-0">Discard</button>
+              <button onClick={usePendingSignup} className="text-sm text-blue-500 hover:underline bg-transparent border-0 p-0">Use saved registration</button>
+              <button onClick={() => { localStorage.removeItem('pendingRegister'); localStorage.removeItem('pendingSignup'); setPendingRegister(null); }} className="text-sm text-red-500 hover:underline bg-transparent border-0 p-0">Discard</button>
             </div>
           </div>
         )}
@@ -199,7 +204,7 @@ const Login = () => {
             onClick={() => navigate('/register')}
             className="text-blue-500 hover:underline bg-transparent border-0 p-0"
           >
-            Sign Up
+            Register
           </button>
         </p>
       </div>
