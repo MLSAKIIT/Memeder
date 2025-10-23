@@ -44,6 +44,14 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
+  }],
+  likedMemes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meme'
+  }],
+  dislikedMemes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meme'
   }]
 }, {
   timestamps: true
