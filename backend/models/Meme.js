@@ -12,6 +12,11 @@ const memeSchema = new mongoose.Schema({
     required: [true, 'Image URL is required'],
     trim: true
   },
+  imageId:{
+    type: String,
+    required: [true, 'Image ID is required'],
+    trim: true
+  },
   description: {
     type: String,
     trim: true,
