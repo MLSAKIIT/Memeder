@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Name is required'],
+    trim: true,
+    maxlength: [50, 'Name cannot exceed 50 characters']
+  },
   username: {
     type: String,
     required: [true, 'Username is required'],
@@ -38,6 +44,14 @@ const userSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
+  }],
+  likedMemes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meme'
+  }],
+  dislikedMemes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meme'
   }]
 }, {
   timestamps: true

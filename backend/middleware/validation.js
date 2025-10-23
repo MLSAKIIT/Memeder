@@ -1,6 +1,7 @@
 const { body, validationResult, param, query } = require('express-validator');
 const fs = require('fs');
 const path = require('path');
+const validator = require('validator');
 
 // Validation error handler middleware
 const handleValidationErrors = (req, res, next) => {
@@ -67,25 +68,23 @@ const validateUserLogin = [
   handleValidationErrors
 ];
 
-//Meme file upload validation
-const validateMemeUpload = [
-  body('title')
-    .trim()
-    .notEmpty()
-    .withMessage('Title is required'),
-
-  body('description')
-    .trim()
-    .notEmpty()
-    .withMessage('Description is required'),
-
-  body('tags')
+// URL validation for imageUrl
+const validateMemeUrl = [
+  body('imageUrl')
     .optional()
-    .isArray()
-    .withMessage('Tags must be an array')
-    .custom((tags) => {
-      if (tags.length === 0) {
-        throw new Error('Tags array must not be empty');
+    .trim()
+    .isURL({ protocols: ['http', 'https'] })
+    .withMessage('Image URL must be a valid HTTP/HTTPS URL')
+    .custom((value) => {
+      if (value) {
+        // Check if URL points to an image
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        const urlPath = new URL(value).pathname.toLowerCase();
+        const hasImageExtension = imageExtensions.some(ext => urlPath.endsWith(ext));
+        
+        if (!hasImageExtension) {
+          throw new Error('Image URL must point to an image file (.jpg, .jpeg, .png, .gif, .webp)');
+        }
       }
       return true;
     }),
@@ -93,31 +92,112 @@ const validateMemeUpload = [
   handleValidationErrors
 ];
 
-//Meme file upload validation
-const validateUpdatedMeme = [
+// Meme creation validation (supports both file upload and URL)
+const validateMemeUpload = [
   body('title')
     .trim()
-    .optional()
-    .isString()
-    .withMessage('Title must be a string'),
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Title must be between 1 and 100 characters')
+    .escape(), // Sanitize HTML
 
   body('description')
     .trim()
-    .optional()
-    .isString()
-    .withMessage('Description must be a string'),
+    .notEmpty()
+    .withMessage('Description is required')
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Description must be between 1 and 500 characters')
+    .escape(), // Sanitize HTML
 
   body('tags')
     .optional()
     .isArray()
     .withMessage('Tags must be an array')
     .custom((tags) => {
-      if (tags.length === 0) {
-        throw new Error('Tags array must not be empty');
+      if (tags && tags.length > 0) {
+        if (tags.length > 10) {
+          throw new Error('Maximum 10 tags allowed');
+        }
+        // Validate each tag
+        for (const tag of tags) {
+          if (typeof tag !== 'string' || tag.trim().length === 0) {
+            throw new Error('Each tag must be a non-empty string');
+          }
+          if (tag.trim().length > 20) {
+            throw new Error('Each tag must be 20 characters or less');
+          }
+        }
       }
       return true;
+    })
+    .customSanitizer((tags) => {
+      // Sanitize tags
+      return tags ? tags.map(tag => validator.escape(tag.trim().toLowerCase())) : [];
     }),
 
+  // Custom validation to ensure either file or imageUrl is provided
+  body().custom((value, { req }) => {
+    if (!req.file && !value.imageUrl) {
+      throw new Error('Either upload an image file or provide an image URL');
+    }
+    return true;
+  }),
+
+  handleValidationErrors
+];
+
+// Meme update validation
+const validateUpdatedMeme = [
+  body('title')
+    .trim()
+    .optional()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Title must be between 1 and 100 characters')
+    .escape(), // Sanitize HTML
+
+  body('description')
+    .trim()
+    .optional()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Description must be between 1 and 500 characters')
+    .escape(), // Sanitize HTML
+
+  body('tags')
+    .optional()
+    .isArray()
+    .withMessage('Tags must be an array')
+    .custom((tags) => {
+      if (tags && tags.length > 0) {
+        if (tags.length > 10) {
+          throw new Error('Maximum 10 tags allowed');
+        }
+        // Validate each tag
+        for (const tag of tags) {
+          if (typeof tag !== 'string' || tag.trim().length === 0) {
+            throw new Error('Each tag must be a non-empty string');
+          }
+          if (tag.trim().length > 20) {
+            throw new Error('Each tag must be 20 characters or less');
+          }
+        }
+      }
+      return true;
+    })
+    .customSanitizer((tags) => {
+      // Sanitize tags
+      return tags ? tags.map(tag => validator.escape(tag.trim().toLowerCase())) : [];
+    }),
+
+  handleValidationErrors
+];
+
+// MongoDB ObjectId validation
+const validateObjectId = (paramName) => [
+  param(paramName)
+    .isMongoId()
+    .withMessage(`Invalid ${paramName} format`),
+  
   handleValidationErrors
 ];
 
@@ -126,7 +206,9 @@ module.exports = {
   validateUserRegistration,
   validateUserLogin,
   validateMemeUpload,
-  validateUpdatedMeme
+  validateUpdatedMeme,
+  validateMemeUrl,
+  validateObjectId
 };
 
 

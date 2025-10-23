@@ -1,5 +1,8 @@
 import { Routes, Route } from 'react-router'
+import { AuthProvider } from './contexts/AuthContext'
 import Navbar from './components/Navbar'
+import ProtectedRoute from './components/ProtectedRoute'
+import PublicRoute from './components/PublicRoute'
 import Home from './pages/Home'
 import About from './pages/About'
 import LikedMemes from './pages/LikedMemes';
@@ -10,19 +13,52 @@ import AddMeme from './pages/AddMeme';
 
 function App() {
   return (
-    <div className="min-h-screen bg-white">
-      <Navbar />
+    <AuthProvider>
+      <div className="min-h-screen bg-white">
+        <Navbar />
 
-      <Routes>
-        <Route index element={<Home />} />
-        <Route path="about" element={<About />} />
-        <Route path="/liked" element={<LikedMemes />} />
-        <Route path="/disliked" element={<DislikedMemes />} />
-        <Route path="/add" element={<AddMeme />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Signup />} />
-      </Routes>
-    </div>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute>
+              <Signup />
+            </PublicRoute>
+          } />
+
+          {/* Protected routes */}
+          <Route index element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
+          <Route path="about" element={
+            <ProtectedRoute>
+              <About />
+            </ProtectedRoute>
+          } />
+          <Route path="/liked" element={
+            <ProtectedRoute>
+              <LikedMemes />
+            </ProtectedRoute>
+          } />
+          <Route path="/disliked" element={
+            <ProtectedRoute>
+              <DislikedMemes />
+            </ProtectedRoute>
+          } />
+          <Route path="/add" element={
+            <ProtectedRoute>
+              <AddMeme />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </div>
+    </AuthProvider>
   )
 }
 
