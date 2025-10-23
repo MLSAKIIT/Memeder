@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +12,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [pendingSignup, setPendingSignup] = useState(null);
+
+  // Get the intended destination from location state
+  const from = location.state?.from?.pathname || '/';
 
   const handleChange = (e) => {
     setFormData({
@@ -71,7 +77,10 @@ const Login = () => {
       if (!response.ok) {
         throw new Error(data.message || 'Invalid email or password');
       }
-      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Use the login function from AuthContext
+      login(data.user);
+      
       // If login succeeds and there was a pending signup, clear it
       try {
         const raw = localStorage.getItem('pendingSignup');
@@ -79,7 +88,9 @@ const Login = () => {
       } catch (e) {
         // ignore
       }
-      navigate('/');
+      
+      // Navigate to the intended destination or home
+      navigate(from, { replace: true });
     } catch (err) {
       const msg = /invalid|failed|password|credentials/i.test(err.message)
         ? 'Invalid email or password'

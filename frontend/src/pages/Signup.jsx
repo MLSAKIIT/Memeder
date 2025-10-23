@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,7 @@ const Signup = () => {
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // Redirect after successful signup with a brief message
   useEffect(() => {
@@ -97,8 +99,8 @@ const Signup = () => {
         throw new Error(data.message || 'Registeration failed');
       }
 
-      // Store only user data (cookie handles auth)
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // Use the login function from AuthContext
+      login(data.user);
 
       // Show success state instead of immediate redirect
       setSuccess(true);
