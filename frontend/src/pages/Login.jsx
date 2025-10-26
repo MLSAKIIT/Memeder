@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../components/Button';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +11,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -38,12 +41,11 @@ const Login = () => {
         throw new Error(data.message || 'Login failed');
       }
 
-      // REMOVED: localStorage.setItem('token', data.token);
-      // Store only user data (cookie handles auth)
-      localStorage.setItem('user', JSON.stringify(data.user));
+      // use auth context to update user state
+      login(data.data.user);
 
-      // Redirect to home/dashboard
-      navigate('/');
+      // redirect to dashboard after successful login
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -52,19 +54,19 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-3xl font-bold text-center mb-6">Login to Memeder</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-700">
+        <h2 className="text-3xl font-bold text-center mb-6 text-white">Login to Memeder</h2>
         
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-red-900/20 border border-red-600 text-red-300 px-4 py-3 rounded-lg mb-4">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+            <label className="block text-gray-300 text-sm font-semibold mb-2" htmlFor="email">
               Email
             </label>
             <input
@@ -73,13 +75,13 @@ const Login = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-700 text-white transition-colors duration-200"
               required
             />
           </div>
 
           <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+            <label className="block text-gray-300 text-sm font-semibold mb-2" htmlFor="password">
               Password
             </label>
             <input
@@ -88,23 +90,23 @@ const Login = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-700 text-white transition-colors duration-200"
               required
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 disabled:bg-gray-400"
+            className="w-full"
           >
             {loading ? 'Logging in...' : 'Login'}
-          </button>
+          </Button>
         </form>
 
-        <p className="text-center text-gray-600 mt-4">
+        <p className="text-center text-gray-400 mt-6">
           Don't have an account?{' '}
-          <Link to="/signup" className="text-blue-500 hover:underline">
+          <Link to="/register" className="text-blue-400 hover:underline font-medium">
             Sign Up
           </Link>
         </p>
