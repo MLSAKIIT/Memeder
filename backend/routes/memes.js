@@ -1,8 +1,11 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
-const upload = require('../middleware/upload');
-const { validateMemeUpload, validateUpdatedMeme, validateObjectId } = require('../middleware/validation');
-const { createMeme, getMemesById, updateMeme, deleteMeme, getRandomMemes, getUserMemes, getLikedMemes, getDislikedMemes } = require('../controllers/memeController');
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+// const upload = require('../middleware/upload');
+const { validateMemeUpload, validateUpdatedMeme } = require('../middleware/validation');
+const { createMeme, getMemesById, updateMeme, deleteMeme, getRandomMemes } = require('../controllers/memeController');
 
 const router = express.Router();
 
