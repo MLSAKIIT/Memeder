@@ -37,6 +37,9 @@ export default function Navbar() {
               <Link to="/add" className="text-zinc-600 hover:text-zinc-900 transition-colors">
                 Add Meme
               </Link>
+              <Link to="/my-memes" className="text-zinc-600 hover:text-zinc-900 transition-colors">
+                My Memes
+              </Link>
               <Link to="/profile" className="text-zinc-600 hover:text-zinc-900 transition-colors">
                 Profile
               </Link>

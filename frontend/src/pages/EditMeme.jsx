@@ -1,21 +1,51 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router'
 import { Button } from '../components/Button'
 
-export default function AddMeme() {
+export default function EditMeme() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+
   const [form, setForm] = useState({
     title: '',
     imageUrl: '',
     description: '',
-    tags: '', // comma separated for now (UI only)
+    tags: '',
   })
   const [imageFile, setImageFile] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
+  useEffect(() => {
+    const load = async () => {
+      setError(null)
+      try {
+        const res = await fetch(`http://localhost:3000/api/memes/${id}`, { credentials: 'include' })
+        if (!res.ok) throw new Error('Failed to load meme')
+        const json = await res.json()
+        const m = json?.data?.meme || json
+        const tags = Array.isArray(m?.tags) ? m.tags.join(', ') : ''
+        setForm({
+          title: m?.title || '',
+          imageUrl: m?.imageUrl || '',
+          description: m?.description || '',
+          tags,
+        })
+      } catch (e) {
+        setError(e.message || 'Error loading meme')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [id])
+
   function handleChange(e) {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+    setForm(prev => ({ ...prev, [name]: value }))
   }
 
   function handleFileChange(e) {
@@ -23,58 +53,59 @@ export default function AddMeme() {
     setImageFile(file || null)
   }
 
-  async function submitMeme(e) {
+  async function saveChanges(e) {
     e?.preventDefault()
-    setSubmitting(true)
+    setSaving(true)
     setError(null)
     setSuccess(null)
 
     try {
       const fd = new FormData()
-      fd.append('title', form.title)
-      fd.append('description', form.description)
+      if (form.title) fd.append('title', form.title)
+      if (form.description) fd.append('description', form.description)
       if (form.tags.trim()) {
         const tagsArray = form.tags.split(',').map(t => t.trim()).filter(Boolean)
-        // send as JSON array string to be parsed server-side
         fd.append('tags', JSON.stringify(tagsArray))
       }
       if (imageFile) {
         fd.append('image', imageFile)
-      } else if (form.imageUrl.trim()) {
-        fd.append('imageUrl', form.imageUrl.trim())
+      } else if (form.imageUrl) {
+        // Only send imageUrl if user typed a new one
+        fd.append('imageUrl', form.imageUrl)
       }
 
-      const res = await fetch('http://localhost:3000/api/memes', {
-        method: 'POST',
+      const res = await fetch(`http://localhost:3000/api/memes/${id}`, {
+        method: 'PUT',
         credentials: 'include',
         body: fd,
       })
 
       if (!res.ok) {
-        const maybeJson = await res.json().catch(() => null)
-        throw new Error(maybeJson?.message || 'Failed to create meme')
+        const maybe = await res.json().catch(() => null)
+        throw new Error(maybe?.message || 'Failed to update meme')
       }
 
-      setSuccess('Meme created successfully')
-      setForm({ title: '', imageUrl: '', description: '', tags: '' })
-      setImageFile(null)
-    } catch (err) {
-      setError(err.message || 'Something went wrong')
+      setSuccess('Meme updated')
+      setTimeout(() => navigate('/my-memes'), 800)
+    } catch (e) {
+      setError(e.message || 'Something went wrong')
     } finally {
-      setSubmitting(false)
+      setSaving(false)
     }
   }
+
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>
 
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="text-3xl font-bold text-zinc-900">Add Meme</h1>
-        <p className="mt-2 text-zinc-600">Fill in the details below to add your meme.</p>
+        <h1 className="text-3xl font-bold text-zinc-900">Edit Meme</h1>
+        <p className="mt-2 text-zinc-600">Update your meme details.</p>
 
         {error && <div className="mt-4 text-red-600 text-sm">{error}</div>}
         {success && <div className="mt-4 text-green-600 text-sm">{success}</div>}
 
-        <form className="mt-8 space-y-6" onSubmit={submitMeme}>
+        <form className="mt-8 space-y-6" onSubmit={saveChanges}>
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-zinc-700">Title</label>
             <input
@@ -83,7 +114,6 @@ export default function AddMeme() {
               type="text"
               value={form.title}
               onChange={handleChange}
-              placeholder="Enter meme title"
               className="mt-2 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
               required
             />
@@ -110,7 +140,7 @@ export default function AddMeme() {
                 className="block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
               />
             </div>
-            <p className="mt-1 text-xs text-zinc-500">Upload a file or provide an image URL.</p>
+            <p className="mt-1 text-xs text-zinc-500">Upload a new image or keep the current URL.</p>
           </div>
 
           <div>
@@ -121,8 +151,7 @@ export default function AddMeme() {
               rows={4}
               value={form.description}
               onChange={handleChange}
-              placeholder="Say something about the meme..."
-              className="mt-2 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+              className="mt-2 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
             />
           </div>
 
@@ -137,13 +166,13 @@ export default function AddMeme() {
               placeholder="comma, separated, tags"
               className="mt-2 block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 shadow-sm focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
             />
-            <p className="mt-1 text-xs text-zinc-500">Enter tags separated by commas.</p>
           </div>
 
           <div className="pt-2 flex items-center gap-3">
-            <Button type="submit" disabled={submitting} onClick={submitMeme}>
-              {submitting ? 'Submitting...' : 'Submit Meme'}
+            <Button type="submit" disabled={saving} onClick={saveChanges}>
+              {saving ? 'Saving...' : 'Save Changes'}
             </Button>
+            <Button variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
           </div>
         </form>
       </div>

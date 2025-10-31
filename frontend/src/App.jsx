@@ -11,6 +11,8 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AddMeme from './pages/AddMeme';
 import Profile from './pages/Profile';
+import MyMemes from './pages/MyMemes';
+import EditMeme from './pages/EditMeme';
 
 function App() {
   return (
@@ -60,6 +62,16 @@ function App() {
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-memes" element={
+            <ProtectedRoute>
+              <MyMemes />
+            </ProtectedRoute>
+          } />
+          <Route path="/edit/:id" element={
+            <ProtectedRoute>
+              <EditMeme />
             </ProtectedRoute>
           } />
         </Routes>
