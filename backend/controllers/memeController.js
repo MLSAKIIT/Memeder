@@ -2,15 +2,50 @@ const Meme = require("../models/Meme");
 const path = require('path');
 const fs = require('fs');
 const Swipe = require('../models/Swipe');
+const { 
+  uploadToCloudinary, 
+  deleteFromCloudinary, 
+  getImageFromCloudinary 
+} = require('../utils/cloudinaryUpload')
 
 const createMeme = async (req, res, next) => {
   try {
-    // If file is uploaded, use its path, else fallback to imageUrl from body
-    let imagePath = req.file ? `/assets/images/${req.file.filename}` : req.body.imageUrl;
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file uploaded" });
+    }
+
     const { title, description, tags } = req.body;
-    const newMeme = new Meme({ imageUrl: imagePath, title, description, tags, createdBy: req.user.id });
-    await newMeme.save();
-    res.status(201).json(newMeme);
+    if (!title) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
+    console.log("Uploading to Cloudinary...");
+
+    image = await uploadToCloudinary(req.file.buffer);
+
+    // Save meme to DB
+    try {
+      const newMeme = new Meme({
+        imageUrl: image.secure_url,
+        imageId: image.public_id,
+        title,
+        description,
+        tags,
+        createdBy: req.user.id,
+      });
+
+      await newMeme.save();
+
+      res.status(201).json({
+        message: "Meme created successfully",
+        meme: newMeme,
+      });
+    } catch (dbError) {
+      // DB save failed → clean up Cloudinary image
+      console.error("Error saving meme to DB:", dbError);
+      await deleteFromCloudinary(image.public_id);
+      next(dbError);
+    }
   } catch (error) {
     next(error);
   }
@@ -22,7 +57,8 @@ const getMemesById = async (req, res, next) => {
     if (!meme) {
       return res.status(404).json({ message: 'Meme not found' });
     }
-    res.json(meme);
+    const findMemeImageURL = await getImageFromCloudinary(meme.imageId);
+    res.json({ ...meme.toObject(), imageUrl: findMemeImageURL.secure_url });
   } catch (error) {
     next(error);
   }
@@ -43,11 +79,11 @@ const updateMeme = async (req, res, next) => {
     if (description) meme.description = description;
     if (tags) meme.tags = tags;
     if (req.file) {
-        const oldImagePath = path.join(__dirname, '../assets/images', meme.imageUrl.split('/').pop());
-        fs.unlink(oldImagePath, (err) => {
-            if (err) console.error('Failed to delete old image:', oldImagePath, err);
-        });
-        meme.imageUrl = `/assets/images/${req.file.filename}`;
+      //delete old image from cloudinary
+      await deleteFromCloudinary(meme.imageId);
+      //upload new image to cloudinary
+      const newImage =  await uploadToCloudinary(req.file.buffer);
+      meme.imageId = newImage.public_id;
     }
     await meme.save();
     res.json(meme);
@@ -68,13 +104,8 @@ const deleteMeme = async (req, res, next) => {
     }
     // Delete associated swipes
     await Swipe.deleteMany({ meme: meme._id });
-    // Delete image file
-    if (meme.imageUrl) {
-      const imagePath = path.join(__dirname, '../assets/images', meme.imageUrl.split('/').pop());
-      fs.unlink(imagePath, (err) => {
-        if (err) console.error('Failed to delete image:', imagePath, err);
-      });
-    }
+    // Delete image from Cloudinary
+    await deleteFromCloudinary(meme.imageId);
     // Delete meme
     await meme.deleteOne();
     res.json({ success: true, message: 'Meme deleted successfully' });
