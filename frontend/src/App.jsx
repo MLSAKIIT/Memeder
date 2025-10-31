@@ -10,6 +10,7 @@ import DislikedMemes from './pages/DislikedMemes';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AddMeme from './pages/AddMeme';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -54,6 +55,11 @@ function App() {
           <Route path="/add" element={
             <ProtectedRoute>
               <AddMeme />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           } />
         </Routes>
