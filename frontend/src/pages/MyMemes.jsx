@@ -5,6 +5,7 @@ export default function MyMemes() {
   const [memes, setMemes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
     const load = async () => {
@@ -25,6 +26,26 @@ export default function MyMemes() {
     load()
   }, [])
 
+  async function deleteMeme(id) {
+    if (!confirm('Delete this meme? This action cannot be undone.')) return
+    setDeletingId(id)
+    try {
+      const res = await fetch(`http://localhost:3000/api/memes/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        const maybe = await res.json().catch(() => null)
+        throw new Error(maybe?.message || 'Failed to delete meme')
+      }
+      setMemes(prev => prev.filter(m => m.id !== id))
+    } catch (e) {
+      alert(e.message || 'Error deleting meme')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>
   if (error) return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>
 
@@ -43,13 +64,20 @@ export default function MyMemes() {
                 {meme.description && (
                   <p className="text-sm text-zinc-600 mt-1">{meme.description}</p>
                 )}
-                <div className="mt-3 flex gap-3">
+                <div className="mt-3 flex gap-4 items-center">
                   <Link
                     to={`/edit/${meme.id}`}
                     className="text-sm text-blue-600 hover:text-blue-800"
                   >
                     Edit
                   </Link>
+                  <button
+                    onClick={() => deleteMeme(meme.id)}
+                    disabled={deletingId === meme.id}
+                    className="text-sm text-red-600 hover:text-red-800 disabled:opacity-60"
+                  >
+                    {deletingId === meme.id ? 'Deleting...' : 'Delete'}
+                  </button>
                 </div>
               </div>
             </div>
