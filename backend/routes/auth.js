@@ -27,6 +27,7 @@ router.post('/register', validateUserRegistration, async (req, res, next) => {
 
     // Create new user
     const user = new User({
+      name: req.body.name,
       username,
       email,
       password
@@ -43,6 +44,7 @@ router.post('/register', validateUserRegistration, async (req, res, next) => {
       data: {
         user: {
           id: user._id,
+          name: user.name,
           username: user.username,
           email: user.email
         }
@@ -87,6 +89,7 @@ router.post('/login', validateUserLogin, async (req, res, next) => {
       data: {
         user: {
           id: user._id,
+          name: user.name,
           username: user.username,
           email: user.email
         }
@@ -107,6 +110,28 @@ router.post('/logout', authMiddleware, (req, res) => {
     success: true,
     message: 'Logged out successfully'
   });
+});
+
+// @route   GET /api/auth/verify
+// @desc    Verify if user is authenticated
+router.get('/verify', authMiddleware, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          name: user.name
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // @route   GET /api/auth/profile
