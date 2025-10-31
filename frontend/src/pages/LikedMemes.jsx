@@ -11,16 +11,15 @@ const LikedMemes = () => {
 
   const fetchLikedMemes = async () => {
     try {
-      // REMOVED: const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/memes/liked', {
-        // REMOVED: Authorization header
-        credentials: 'include' // ADDED: Use cookies for auth
+        credentials: 'include'
       });
       
       if (!response.ok) throw new Error('Failed to fetch');
       
-      const data = await response.json();
-      setLikedMemes(data);
+      const json = await response.json();
+      const memes = Array.isArray(json) ? json : (json?.data?.memes ?? []);
+      setLikedMemes(memes);
       setLoading(false);
     } catch (err) {
       setError('Failed to load liked memes');
@@ -39,7 +38,7 @@ const LikedMemes = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {likedMemes.map((meme) => (
-            <div key={meme._id} className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div key={meme.id || meme._id} className="bg-white rounded-lg shadow-lg overflow-hidden">
               <img 
                 src={meme.imageUrl} 
                 alt={meme.title} 
@@ -47,7 +46,7 @@ const LikedMemes = () => {
               />
               <div className="p-4">
                 <h3 className="font-semibold text-lg">{meme.title}</h3>
-                {meme.caption && <p className="text-gray-600 text-sm mt-2">{meme.caption}</p>}
+                {meme.description && <p className="text-gray-600 text-sm mt-2">{meme.description}</p>}
               </div>
             </div>
           ))}

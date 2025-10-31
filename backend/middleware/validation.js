@@ -29,6 +29,24 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
+// Helper: coerce tags into array from JSON string or CSV
+function coerceTagsToArray(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (_) {
+      // not JSON, fall through to CSV
+    }
+    return trimmed.split(',').map(t => t.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 // User registration validation
 const validateUserRegistration = [
   body('username')
@@ -110,8 +128,10 @@ const validateMemeUpload = [
     .withMessage('Description must be between 1 and 500 characters')
     .escape(), // Sanitize HTML
 
+  // Coerce tags before checking array
   body('tags')
     .optional()
+    .customSanitizer((raw) => coerceTagsToArray(raw))
     .isArray()
     .withMessage('Tags must be an array')
     .custom((tags) => {
@@ -165,6 +185,7 @@ const validateUpdatedMeme = [
 
   body('tags')
     .optional()
+    .customSanitizer((raw) => coerceTagsToArray(raw))
     .isArray()
     .withMessage('Tags must be an array')
     .custom((tags) => {
