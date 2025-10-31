@@ -1,68 +1,54 @@
+import { useEffect, useState } from 'react'
 import { Button } from '../components/Button'
-import MemeCard from '../components/MemeCard'
+import SwipeDeck from '../components/SwipeDeck'
 
 export default function Home() {
-    const demoMemes = [
-    
-    {
-      id: '789ghi',
-      title: 'Morning Struggles',
-      imageUrl: 'https://i.chzbgr.com/full/10412088576/hC8DE5C75/every-morning-deciding-if-really-need-this-education',
-      description: '“Me every morning deciding if I really need this education” — capturing that feeling of self-doubt or questioning the purpose of schooling.',
-      tags: ['college', 'relatable', 'education'],
-    },
-  ]
+  const [memes, setMemes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [exhausted, setExhausted] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      setError(null)
+      setExhausted(false)
+      try {
+        const res = await fetch('http://localhost:3000/api/memes?page=1&limit=20', { credentials: 'include' })
+        if (!res.ok) throw new Error('Failed to load memes')
+        const json = await res.json()
+        const list = json?.data?.memes || []
+        setMemes(list)
+      } catch (e) {
+        setError(e.message || 'Error loading memes')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>
+  if (error) return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>
+
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-zinc-900 mb-4">
-            Swipe Right for Laughs
-          </h1>
-          <p className="text-xl text-zinc-600 mb-8 max-w-2xl mx-auto">
-            Discover, rate, and enjoy the best memes on the internet.
-            Swipe right to like, left to pass.
-          </p>
-          <div className="flex justify-center space-x-4">
-            <Button size="lg">
-              Get Started
-            </Button>
-            <Button variant="outline" size="lg">
-              Learn More
-            </Button>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-zinc-900 mb-2">Swipe Right for Laughs</h1>
+          <p className="text-zinc-600">Swipe right to like, left to pass.</p>
         </div>
 
-        {/* Placeholder for Meme Cards */}
-        <div className="mt-20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center">
-            {demoMemes.map((meme) => (
-              <MemeCard key={meme.id} meme={meme} fit="contain" />
-            ))}
+        {memes.length > 0 && !exhausted ? (
+          <SwipeDeck memes={memes} onExhausted={() => setExhausted(true)} />
+        ) : (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🎉</div>
+            <p className="text-zinc-700">You're all caught up! No more memes to swipe.</p>
+            <div className="mt-6">
+              <Button onClick={() => window.location.reload()}>Reload</Button>
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-zinc-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="text-4xl mb-3">👆</div>
-            <h3 className="text-lg font-medium text-zinc-900 mb-2">Easy Swiping</h3>
-            <p className="text-zinc-600">Swipe right to like, left to pass</p>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl mb-3">❤️</div>
-            <h3 className="text-lg font-medium text-zinc-900 mb-2">Save Favorites</h3>
-            <p className="text-zinc-600">Build your personal meme collection</p>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl mb-3">⚡</div>
-            <h3 className="text-lg font-medium text-zinc-900 mb-2">Fast & Fun</h3>
-            <p className="text-zinc-600">Smooth animations and responsive design</p>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
